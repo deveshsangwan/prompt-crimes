@@ -1,0 +1,21 @@
+src/analyzer/index.ts
+  s_f917c94de67eb6::t_4cbff7a878945b 551,553,555,557,559,561,563
+test/report.test.mjs
+  s_f917c94de67eb6::t_4cbff7a878945b 13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "57da776d6ca04e98e75ab875213bf195cea66b47",
+  "prompts": {},
+  "sessions": {
+    "s_f917c94de67eb6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ea260-25ca-7d50-88e4-48608ff73314",
+        "model": "gpt-5.5"
+      },
+      "human_author": "deveshsangwan <dev.sangwan2001@gmail.com>"
+    }
+  }
+}
