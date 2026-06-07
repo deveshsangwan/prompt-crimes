@@ -12,8 +12,7 @@ const cliOptions = {
   format: "esm",
   outfile: "dist/cli.js",
   packages: "external",
-  banner: { js: "#!/usr/bin/env node" },
-  sourcemap: true
+  banner: { js: "#!/usr/bin/env node" }
 };
 
 /** @type {esbuild.BuildOptions} */
@@ -24,8 +23,7 @@ const libOptions = {
   target: "node20",
   format: "esm",
   outfile: "dist/lib/index.js",
-  packages: "external",
-  sourcemap: true
+  packages: "external"
 };
 
 if (watch) {
