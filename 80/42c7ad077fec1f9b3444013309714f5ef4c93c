@@ -1,0 +1,83 @@
+build.js
+  s_f917c94de67eb6::t_b7d1286e4b05ad 19-30,36
+  s_f917c94de67eb6::t_19cd3e840964a9 1-18,31-35,37-39
+src/adapters/zed.ts
+  s_f917c94de67eb6::t_39dfcef7b61db9 1-5,7-61,64-102
+  s_f917c94de67eb6::t_f9e5c4f8d6affd 6,62-63
+src/adapters/claude.ts
+  s_f917c94de67eb6::t_64dead6ee159f6 1-114
+test/analyzer.test.mjs
+  s_f917c94de67eb6::t_7a4311ee408d1d 1-57
+src/index.ts
+  s_f917c94de67eb6::t_b7d1286e4b05ad 3-6
+  s_f917c94de67eb6::t_19cd3e840964a9 1-2,7-15
+src/adapters/index.ts
+  s_f917c94de67eb6::t_64dead6ee159f6 1-46
+package.json
+  s_f917c94de67eb6::t_f9e5c4f8d6affd 42,44
+  s_f917c94de67eb6::t_19cd3e840964a9 1-24,26-41,43,45-48
+  s_f917c94de67eb6::t_9bbce8d342cbb1 25
+src/analyzer/index.ts
+  s_f917c94de67eb6::t_623e6295644663 183
+  s_f917c94de67eb6::t_38f007e866bf13 1-182,184-416
+README.md
+  s_f917c94de67eb6::t_7a4311ee408d1d 1-60
+src/cli.ts
+  s_f917c94de67eb6::t_19cd3e840964a9 1-54
+.gitignore
+  s_f917c94de67eb6::t_d045468ee24a99 1-4
+src/adapters/codex.ts
+  s_f917c94de67eb6::t_64dead6ee159f6 1-103
+src/adapters/opencode.ts
+  s_f917c94de67eb6::t_39dfcef7b61db9 1-4,6-13,16-48,50-85
+  s_f917c94de67eb6::t_f9e5c4f8d6affd 5,14-15,49
+src/adapters/sqlite.ts
+  s_f917c94de67eb6::t_f9e5c4f8d6affd 1-47
+src/adapters/cursor.ts
+  s_f917c94de67eb6::t_64dead6ee159f6 1-145
+test/adapters.test.mjs
+  s_f917c94de67eb6::t_7a4311ee408d1d 1-5,12,15-74,76-97
+  s_f917c94de67eb6::t_f9e5c4f8d6affd 13-14,75
+  s_f917c94de67eb6::t_b7d1286e4b05ad 6-11
+tsconfig.lib.json
+  s_f917c94de67eb6::t_19cd3e840964a9 1-9
+src/report/index.ts
+  s_f917c94de67eb6::t_38f007e866bf13 1-99
+test/cli.test.mjs
+  s_f917c94de67eb6::t_7a4311ee408d1d 1-29
+tsconfig.json
+  s_f917c94de67eb6::t_19cd3e840964a9 1-3,6-13
+  s_f917c94de67eb6::t_73f68cd60e0a65 4-5
+src/commands/scan.ts
+  s_f917c94de67eb6::t_19cd3e840964a9 1-16,18-102
+  s_f917c94de67eb6::t_265a07662b58ff 17
+src/adapters/amp.ts
+  s_f917c94de67eb6::t_39dfcef7b61db9 1-71
+src/adapters/cline.ts
+  s_f917c94de67eb6::t_39dfcef7b61db9 1-105
+LICENSE
+  s_f917c94de67eb6::t_7a4311ee408d1d 1-21
+test/report.test.mjs
+  s_f917c94de67eb6::t_7a4311ee408d1d 1-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "8042c7ad077fec1f9b3444013309714f5ef4c93c",
+  "prompts": {},
+  "humans": {
+    "h_9c147e6399b95b": {
+      "author": "deveshsangwan <dev.sangwan2001@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_f917c94de67eb6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ea260-25ca-7d50-88e4-48608ff73314",
+        "model": "gpt-5.5"
+      },
+      "human_author": "deveshsangwan <dev.sangwan2001@gmail.com>"
+    }
+  }
+}
