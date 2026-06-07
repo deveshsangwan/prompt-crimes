@@ -3,9 +3,12 @@ import {
   CATEGORY_LABELS,
   CATEGORY_POINTS,
   CONTEXT_DUMP_PATTERNS,
+  CONTEXT_WITHOUT_QUESTION_PATTERNS,
   DECISION_OUTSOURCING_PATTERNS,
   ERROR_DUMP_PATTERNS,
+  HEALTHY_SIGNAL_PATTERNS,
   PING_PONG_PATTERNS,
+  REASON_TEMPLATES,
   SNIPPET_SANITIZERS,
   TEXT_PATTERNS,
   VAGUE_PROMPT_PATTERNS,
@@ -15,12 +18,15 @@ import {
 export type CrimeCategory =
   | "vague_prompt"
   | "context_dump"
+  | "context_without_question"
   | "validation_seeking"
   | "decision_outsourcing"
   | "error_dump_no_context"
   | "prompt_ping_pong";
 
 export type CrimeSeverity = "minor" | "moderate" | "severe";
+
+export type HealthySignal = "learning" | "clear_context" | "specific_question" | "shows_attempt";
 
 export interface MessageMeta {
   agent?: string;
@@ -53,6 +59,27 @@ export interface AgentSummary {
   points: number;
 }
 
+export interface AiDependencyBreakdown {
+  rates: {
+    validationRate: number;
+    decisionRate: number;
+    pingPongRate: number;
+    vagueRate: number;
+    errorNoContextRate: number;
+    contextDumpRate: number;
+  };
+  scores: {
+    validation: number;
+    decision: number;
+    pingPong: number;
+    vague: number;
+    errorNoContext: number;
+    contextDump: number;
+  };
+  volumeBoost: number;
+  healthyDiscount: number;
+}
+
 export interface CrimeReport {
   totals: {
     messages: number;
@@ -65,7 +92,9 @@ export interface CrimeReport {
   perAgent: Record<string, AgentSummary>;
   categories: CategorySummary[];
   evidence: CrimeEvidence[];
+  healthySignals: Record<HealthySignal, number>;
   aiDependencyIndex: number;
+  aiDependencyBreakdown: AiDependencyBreakdown;
   verdict: string;
   charges: string[];
 }
@@ -81,6 +110,8 @@ interface TextStats {
   lineCount: number;
   codeLines: number;
   errorLines: number;
+  jsonLikeLines: number;
+  logLikeLines: number;
   questionMarks: number;
 }
 
@@ -104,7 +135,7 @@ export function analyzeMessages(messages: Message[], options: AnalyzeOptions = {
       const count = (sessionShortPrompts.get(sessionKey) ?? 0) + 1;
       sessionShortPrompts.set(sessionKey, count);
       if (count >= 3 && !textEvidence.some((item) => item.category === "prompt_ping_pong")) {
-        textEvidence.push(createEvidence("prompt_ping_pong", "moderate", "rapid-fire follow-up with almost no new information", message.text, message, options.includeSnippets));
+        textEvidence.push(createEvidence("prompt_ping_pong", "moderate", message.text, message, options.includeSnippets));
       }
     }
 
@@ -117,7 +148,8 @@ export function analyzeMessages(messages: Message[], options: AnalyzeOptions = {
 
   const categories = summarizeCategories(evidence);
   const dateRange = buildDateRange(messages);
-  const aiDependencyIndex = computeAiDependencyIndex(messages, evidence);
+  const healthySignals = summarizeHealthySignals(messages);
+  const { index: aiDependencyIndex, breakdown: aiDependencyBreakdown } = computeAiDependencyIndex(messages, evidence);
   const verdict = getVerdict(aiDependencyIndex);
 
   return {
@@ -132,7 +164,9 @@ export function analyzeMessages(messages: Message[], options: AnalyzeOptions = {
     perAgent,
     categories,
     evidence: evidence.sort((a, b) => b.points - a.points),
+    healthySignals,
     aiDependencyIndex,
+    aiDependencyBreakdown,
     verdict,
     charges: generateCharges(categories, aiDependencyIndex)
   };
@@ -147,27 +181,31 @@ export function analyzeText(
   const meta = options.meta ?? {};
 
   if (isVaguePrompt(stats)) {
-    evidence.push(createEvidence("vague_prompt", stats.wordCount <= 4 ? "moderate" : "minor", "the ask is doing interpretive dance instead of requirements", text, meta, options.includeSnippets));
+    evidence.push(createEvidence("vague_prompt", stats.wordCount <= 4 ? "moderate" : "minor", text, meta, options.includeSnippets));
   }
 
   if (isContextDump(stats)) {
-    evidence.push(createEvidence("context_dump", stats.wordCount > 900 || stats.lineCount > 80 ? "severe" : "moderate", "big paste energy with a suspiciously tiny ask", text, meta, options.includeSnippets));
+    evidence.push(createEvidence("context_dump", stats.wordCount > 900 || stats.lineCount > 80 ? "severe" : "moderate", text, meta, options.includeSnippets));
+  }
+
+  if (isContextWithoutQuestion(stats)) {
+    evidence.push(createEvidence("context_without_question", "moderate", text, meta, options.includeSnippets));
   }
 
   if (isValidationSeeking(stats.normalized)) {
-    evidence.push(createEvidence("validation_seeking", "moderate", "asked the model to become a confidence vending machine", text, meta, options.includeSnippets));
+    evidence.push(createEvidence("validation_seeking", "moderate", text, meta, options.includeSnippets));
   }
 
   if (isDecisionOutsourcing(stats.normalized)) {
-    evidence.push(createEvidence("decision_outsourcing", "moderate", "outsourced taste, judgment, and possibly free will", text, meta, options.includeSnippets));
+    evidence.push(createEvidence("decision_outsourcing", "moderate", text, meta, options.includeSnippets));
   }
 
   if (isErrorDumpNoContext(stats)) {
-    evidence.push(createEvidence("error_dump_no_context", stats.errorLines >= 8 ? "severe" : "moderate", "delivered the stack trace and fled the scene", text, meta, options.includeSnippets));
+    evidence.push(createEvidence("error_dump_no_context", stats.errorLines >= 8 ? "severe" : "moderate", text, meta, options.includeSnippets));
   }
 
   if (isPingPongCandidate(text)) {
-    evidence.push(createEvidence("prompt_ping_pong", "minor", "follow-up contains less context than a fortune cookie", text, meta, options.includeSnippets));
+    evidence.push(createEvidence("prompt_ping_pong", "minor", text, meta, options.includeSnippets));
   }
 
   return dedupeCategories(evidence);
@@ -194,7 +232,6 @@ function messageMeta(message: Message): MessageMeta {
 function createEvidence(
   category: CrimeCategory,
   severity: CrimeSeverity,
-  reason: string,
   text: string,
   meta: MessageMeta,
   includeSnippet?: boolean
@@ -204,10 +241,25 @@ function createEvidence(
     category,
     severity,
     points: Math.round(CATEGORY_POINTS[category] * multiplier),
-    reason,
+    reason: pickTemplate(category, text),
     ...(includeSnippet ? { snippet: sanitizeSnippet(text) } : {}),
     messageMeta: meta
   };
+}
+
+export function pickTemplate(category: CrimeCategory, text: string): string {
+  const templates = REASON_TEMPLATES[category];
+  const hash = stableHash(`${category}:${text}`);
+  return templates[hash % templates.length] ?? templates[0] ?? "";
+}
+
+function stableHash(value: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
 }
 
 function dedupeCategories(evidence: CrimeEvidence[]): CrimeEvidence[] {
@@ -225,6 +277,12 @@ function getStats(text: string): TextStats {
   const lines = text.split(TEXT_PATTERNS.lineBreak);
   const codeLines = lines.filter((line) => TEXT_PATTERNS.codeLine.test(line)).length;
   const errorLines = lines.filter((line) => TEXT_PATTERNS.errorLine.test(line)).length;
+  const jsonLikeLines = lines.filter(
+    (line) => TEXT_PATTERNS.jsonLikeLineStart.test(line) || TEXT_PATTERNS.jsonLikeLineEnd.test(line)
+  ).length;
+  const logLikeLines = lines.filter(
+    (line) => TEXT_PATTERNS.logLevel.test(line) || TEXT_PATTERNS.isoDate.test(line)
+  ).length;
 
   return {
     normalized,
@@ -233,6 +291,8 @@ function getStats(text: string): TextStats {
     lineCount: lines.length,
     codeLines,
     errorLines,
+    jsonLikeLines,
+    logLikeLines,
     questionMarks: (text.match(TEXT_PATTERNS.questionMark) ?? []).length
   };
 }
@@ -250,6 +310,12 @@ function isVaguePrompt(stats: TextStats): boolean {
   if (VAGUE_PROMPT_PATTERNS.exactAsk.test(text)) {
     return true;
   }
+  if (VAGUE_PROMPT_PATTERNS.exactShortPanic.test(text)) {
+    return true;
+  }
+  if (VAGUE_PROMPT_PATTERNS.exactBrokenState.test(text)) {
+    return true;
+  }
   if (stats.wordCount <= 7 && VAGUE_PROMPT_PATTERNS.shortAction.test(text)) {
     return true;
   }
@@ -261,8 +327,20 @@ function isVaguePrompt(stats: TextStats): boolean {
 
 function isContextDump(stats: TextStats): boolean {
   const tinyAsk = CONTEXT_DUMP_PATTERNS.tinyAsk.test(stats.normalized);
-  const heavyPaste = stats.wordCount >= 350 || stats.lineCount >= 35 || stats.codeLines >= 12;
+  const heavyPaste =
+    stats.wordCount >= 350 ||
+    stats.lineCount >= 35 ||
+    stats.codeLines >= 12 ||
+    stats.jsonLikeLines >= 20 ||
+    stats.logLikeLines >= 15;
   return heavyPaste && (tinyAsk || stats.codeLines >= 18 || stats.wordCount >= 700);
+}
+
+function isContextWithoutQuestion(stats: TextStats): boolean {
+  const hasBigContext = stats.wordCount >= 180 || stats.lineCount >= 25 || stats.codeLines >= 8;
+  const hasQuestion = stats.questionMarks > 0;
+  const hasAskVerb = CONTEXT_WITHOUT_QUESTION_PATTERNS.askVerb.test(stats.normalized);
+  return hasBigContext && !hasQuestion && !hasAskVerb;
 }
 
 function isValidationSeeking(text: string): boolean {
@@ -275,7 +353,8 @@ function isDecisionOutsourcing(text: string): boolean {
 }
 
 function isErrorDumpNoContext(stats: TextStats): boolean {
-  if (stats.errorLines < 3) return false;
+  const hasStrongError = ERROR_DUMP_PATTERNS.strongError.test(stats.normalized);
+  if (!hasStrongError && stats.errorLines < 3) return false;
   const hasContext = ERROR_DUMP_PATTERNS.contextClues.test(stats.normalized);
   const contextWords = stats.words.filter((word) => ERROR_DUMP_PATTERNS.contextWords.has(word)).length;
   return !hasContext && contextWords < 2;
@@ -330,21 +409,135 @@ function buildDateRange(messages: Message[]): { from: string; to: string } | und
   return { from: first.toISOString().slice(0, 10), to: last.toISOString().slice(0, 10) };
 }
 
-function computeAiDependencyIndex(messages: Message[], evidence: CrimeEvidence[]): number {
-  if (messages.length === 0) return 0;
+function computeAiDependencyIndex(
+  messages: Message[],
+  evidence: CrimeEvidence[]
+): { index: number; breakdown: AiDependencyBreakdown } {
+  if (messages.length === 0) {
+    return {
+      index: 0,
+      breakdown: {
+        rates: {
+          validationRate: 0,
+          decisionRate: 0,
+          pingPongRate: 0,
+          vagueRate: 0,
+          errorNoContextRate: 0,
+          contextDumpRate: 0
+        },
+        scores: {
+          validation: 0,
+          decision: 0,
+          pingPong: 0,
+          vague: 0,
+          errorNoContext: 0,
+          contextDump: 0
+        },
+        volumeBoost: 0,
+        healthyDiscount: 0
+      }
+    };
+  }
 
-  const weighted = evidence.reduce((sum, item) => {
-    const extra =
-      item.category === "decision_outsourcing" || item.category === "validation_seeking"
-        ? 4
-        : item.category === "prompt_ping_pong"
-          ? 3
-          : 0;
-    return sum + item.points + extra;
-  }, 0);
-  const density = weighted / Math.max(messages.length, 1);
+  const countByCategory = evidence.reduce(
+    (counts, item) => {
+      counts[item.category] = (counts[item.category] ?? 0) + 1;
+      return counts;
+    },
+    {} as Partial<Record<CrimeCategory, number>>
+  );
+  const rate = (category: CrimeCategory) => (countByCategory[category] ?? 0) / messages.length;
+  const rates = {
+    validationRate: rate("validation_seeking"),
+    decisionRate: rate("decision_outsourcing"),
+    pingPongRate: rate("prompt_ping_pong"),
+    vagueRate: rate("vague_prompt"),
+    errorNoContextRate: rate("error_dump_no_context"),
+    contextDumpRate: rate("context_dump")
+  };
+  const scores = {
+    validation: rates.validationRate * 22,
+    decision: rates.decisionRate * 24,
+    pingPong: rates.pingPongRate * 18,
+    vague: rates.vagueRate * 14,
+    errorNoContext: rates.errorNoContextRate * 14,
+    contextDump: rates.contextDumpRate * 8
+  };
   const volumeBoost = Math.min(18, Math.log10(messages.length + 1) * 8);
-  return Math.max(0, Math.min(100, Math.round(density * 7 + volumeBoost)));
+  const healthyCount = messages.filter((message) => {
+    const signals = detectHealthySignals(message.text);
+    return signals.includes("shows_attempt") || signals.includes("learning");
+  }).length;
+  const healthyRatio = healthyCount / messages.length;
+  const healthyDiscount = healthyRatio * 12;
+  const rawIndex =
+    scores.validation +
+    scores.decision +
+    scores.pingPong +
+    scores.vague +
+    scores.errorNoContext +
+    scores.contextDump +
+    volumeBoost -
+    healthyDiscount;
+
+  return {
+    index: clamp(Math.round(rawIndex), 0, 100),
+    breakdown: {
+      rates,
+      scores,
+      volumeBoost,
+      healthyDiscount
+    }
+  };
+}
+
+function summarizeHealthySignals(messages: Message[]): Record<HealthySignal, number> {
+  const summary: Record<HealthySignal, number> = {
+    learning: 0,
+    clear_context: 0,
+    specific_question: 0,
+    shows_attempt: 0
+  };
+
+  for (const message of messages) {
+    for (const signal of detectHealthySignals(message.text)) {
+      summary[signal]++;
+    }
+  }
+
+  return summary;
+}
+
+export function detectHealthySignals(text: string): HealthySignal[] {
+  const stats = getStats(text);
+  const signals: HealthySignal[] = [];
+
+  if (hasShowsAttempt(stats.normalized)) signals.push("shows_attempt");
+  if (hasSpecificQuestion(stats)) signals.push("specific_question");
+  if (isLearningPrompt(stats.normalized)) signals.push("learning");
+  if (hasClearContext(stats)) signals.push("clear_context");
+
+  return signals;
+}
+
+function hasShowsAttempt(normalizedText: string): boolean {
+  return HEALTHY_SIGNAL_PATTERNS.showsAttempt.test(normalizedText);
+}
+
+function hasSpecificQuestion(stats: TextStats): boolean {
+  return stats.questionMarks > 0 && stats.wordCount >= 20 && stats.wordCount <= 250;
+}
+
+function isLearningPrompt(normalizedText: string): boolean {
+  return HEALTHY_SIGNAL_PATTERNS.learning.test(normalizedText);
+}
+
+function hasClearContext(stats: TextStats): boolean {
+  return stats.wordCount >= 20 && stats.wordCount <= 250 && !isContextWithoutQuestion(stats);
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
 }
 
 function generateCharges(categories: CategorySummary[], index: number): string[] {
@@ -358,6 +551,8 @@ function generateCharges(categories: CategorySummary[], index: number): string[]
         return `Count ${category.count}: Asking "${category.label}" to carry the whole sprint in a tote bag.`;
       case "context_dump":
         return `Count ${category.count}: Releasing a context avalanche and calling it collaboration.`;
+      case "context_without_question":
+        return `Count ${category.count}: Dropping a full case file with no actual question attached.`;
       case "validation_seeking":
         return `Count ${category.count}: Using the model as a tiny approval desk.`;
       case "decision_outsourcing":

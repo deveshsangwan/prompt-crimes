@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { analyzeMessages, analyzeText, getVerdict } from "../dist/lib/index.js";
+import {
+  REASON_TEMPLATES,
+  analyzeMessages,
+  analyzeText,
+  detectHealthySignals,
+  getVerdict,
+  pickTemplate
+} from "../dist/lib/index.js";
 
 function categories(text) {
   return analyzeText(text).map((item) => item.category);
@@ -9,13 +16,56 @@ function categories(text) {
 test("detects vague prompts", () => {
   assert.ok(categories("fix this").includes("vague_prompt"));
   assert.ok(categories("thoughts?").includes("vague_prompt"));
+  assert.ok(categories("check").includes("vague_prompt"));
+  assert.ok(categories("issue?").includes("vague_prompt"));
+  assert.ok(categories("why?").includes("vague_prompt"));
+  assert.ok(categories("help pls").includes("vague_prompt"));
+  assert.ok(categories("fix fast").includes("vague_prompt"));
+  assert.ok(categories("not working").includes("vague_prompt"));
+  assert.ok(categories("any idea?").includes("vague_prompt"));
   assert.equal(categories("Please update the login form to validate email before submit.").includes("vague_prompt"), false);
+});
+
+test("uses configured vague prompt roast reasons", () => {
+  const evidence = analyzeText("issue?").find((item) => item.category === "vague_prompt");
+  assert.ok(evidence);
+  assert.ok(REASON_TEMPLATES.vague_prompt.includes(evidence.reason));
+  assert.equal(evidence.reason, pickTemplate("vague_prompt", "issue?"));
+  assert.equal(pickTemplate("vague_prompt", "issue?"), pickTemplate("vague_prompt", "issue?"));
+});
+
+test("reason template selection avoids simple character-sum collisions", () => {
+  assert.notEqual(pickTemplate("vague_prompt", "abc"), pickTemplate("vague_prompt", "acb"));
 });
 
 test("detects context dumps", () => {
   const code = Array.from({ length: 40 }, (_, index) => `const value${index} = ${index};`).join("\n");
   assert.ok(categories(`${code}\n\nfix?`).includes("context_dump"));
   assert.equal(categories("Here is the failing command and expected behavior. Please help debug.").includes("context_dump"), false);
+});
+
+test("detects JSON and log walls as context dumps", () => {
+  const jsonWall = Array.from({ length: 22 }, (_, index) => `  "field${index}": "value${index}",`).join("\n");
+  const logWall = Array.from(
+    { length: 16 },
+    (_, index) => `2026-01-01T00:00:${String(index).padStart(2, "0")}Z INFO request ${index}`
+  ).join("\n");
+
+  assert.ok(categories(`{\n${jsonWall}\n}\n\nfix?`).includes("context_dump"));
+  assert.ok(categories(`${logWall}\n\nwhat now?`).includes("context_dump"));
+});
+
+test("detects context without a clear question", () => {
+  const architectureNotes = Array.from(
+    { length: 26 },
+    (_, index) => `Service ${index} emits an event into the queue and the worker stores the result.`
+  ).join("\n");
+  const codeContext = Array.from({ length: 8 }, (_, index) => `const service${index} = createService();`).join("\n");
+
+  assert.ok(categories(`Here is my architecture.\n${architectureNotes}`).includes("context_without_question"));
+  assert.ok(categories(`Here is the relevant setup.\n${codeContext}`).includes("context_without_question"));
+  assert.equal(categories(`Here is my architecture.\n${architectureNotes}\n\nWhat should I change?`).includes("context_without_question"), false);
+  assert.equal(categories(`Here is my architecture.\n${architectureNotes}\n\nPlease review it.`).includes("context_without_question"), false);
 });
 
 test("detects validation seeking", () => {
@@ -31,7 +81,9 @@ test("detects decision outsourcing", () => {
 test("detects error dumps without context", () => {
   const trace = `TypeError: nope\n    at run (app.js:1)\n    at main (app.js:2)\nCaused by: Error: failed`;
   assert.ok(categories(trace).includes("error_dump_no_context"));
+  assert.ok(categories("TypeError: Cannot read properties of undefined").includes("error_dump_no_context"));
   assert.equal(categories(`I ran npm test after upgrading Node. Expected green tests.\n${trace}`).includes("error_dump_no_context"), false);
+  assert.equal(categories("After I updated pnpm in staging, TypeError: Cannot read properties of undefined").includes("error_dump_no_context"), false);
 });
 
 test("detects prompt ping-pong", () => {
@@ -54,4 +106,34 @@ test("scores and verdicts are normalized", () => {
   assert.equal(typeof getVerdict(report.aiDependencyIndex), "string");
   assert.ok(report.categories.some((category) => category.category === "decision_outsourcing"));
   assert.ok(report.categories.some((category) => category.category === "prompt_ping_pong"));
+  assert.equal(report.aiDependencyBreakdown.rates.decisionRate, 1 / 5);
+  assert.equal(report.aiDependencyBreakdown.rates.pingPongRate, 3 / 5);
+  assert.ok(report.aiDependencyBreakdown.scores.decision > 0);
+});
+
+test("healthy usage signals reduce the dependency index", () => {
+  const thinMessages = [
+    { text: "Which one should I use?", agent: "codex", session: "a" },
+    ...Array.from({ length: 9 }, () => ({
+      text: "Here are some notes about the implementation status.",
+      agent: "codex",
+      session: "a"
+    }))
+  ];
+  const healthyMessages = [
+    { text: "Which one should I use?", agent: "codex", session: "a" },
+    ...Array.from({ length: 9 }, () => ({
+      text: "I ran the benchmarks and expected lower latency, but the actual result was slower. Help me understand the tradeoff.",
+      agent: "codex",
+      session: "a"
+    }))
+  ];
+
+  const thinReport = analyzeMessages(thinMessages);
+  const healthyReport = analyzeMessages(healthyMessages);
+
+  assert.ok(healthyReport.aiDependencyIndex < thinReport.aiDependencyIndex);
+  assert.ok(healthyReport.aiDependencyBreakdown.healthyDiscount > 0);
+  assert.equal(healthyReport.healthySignals.shows_attempt, 9);
+  assert.ok(detectHealthySignals("Explain how does this cache work? I tried the docs first.").includes("learning"));
 });
