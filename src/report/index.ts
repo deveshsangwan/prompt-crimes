@@ -33,7 +33,8 @@ export function renderReport(report: CrimeReport, options: RenderOptions = {}): 
   if (report.totals.dateRange) {
     lines.push(`  ${color("dim", "date range")}            ${report.totals.dateRange.from} -> ${report.totals.dateRange.to}`);
   }
-  lines.push(`  ${color("dim", "total charges")}         ${color("bold", String(report.totals.crimes))}`);
+  lines.push(`  ${color("dim", "charges filed")}         ${color("bold", String(report.totals.crimes))}`);
+  lines.push(`  ${color("dim", "crime rate")}            ${color("bold", String(((report.totals.crimes / report.totals.messages) * 100).toFixed(1)).padStart(3))}%`);
   lines.push("");
   lines.push(`  ${color("bold", "AI Dependency Index")}  ${indexBar(report.aiDependencyIndex)} ${color("bold", String(report.aiDependencyIndex).padStart(3))}/100`);
   lines.push(`  ${color("dim", "verdict")}               ${color(verdictColor(report.aiDependencyIndex), report.verdict)}`);
@@ -93,7 +94,7 @@ function verdictColor(index: number): keyof typeof COLORS {
 }
 
 function severityBadge(severity: CrimeSeverity): string {
-  if (severity === "severe") return color("red", "HIGH");
-  if (severity === "moderate") return color("yellow", "MED ");
-  return color("green", "LOW ");
+  if (severity === "severe") return color("red", "MAJOR ");
+  if (severity === "moderate") return color("yellow", "MINOR ");
+  return color("green", "PETTY ");
 }
