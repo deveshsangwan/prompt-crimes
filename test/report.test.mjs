@@ -10,6 +10,7 @@ test("renders a terminal report without snippets by default", () => {
   assert.match(output, /PROMPT CRIMES REPORT/);
   assert.match(output, /AI Dependency Index/);
   assert.match(output, /Vague Prompting/);
+  assert.match(output, /Vague Prompting x1: Asking "Vague Prompting" to carry the whole sprint in a tote bag\./);
   assert.match(output, /snippets hidden by default/);
   assert.doesNotMatch(output, /fix this/);
 });

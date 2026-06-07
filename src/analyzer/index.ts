@@ -548,19 +548,19 @@ function generateCharges(categories: CategorySummary[], index: number): string[]
   const charges = categories.slice(0, 5).map((category) => {
     switch (category.category) {
       case "vague_prompt":
-        return `Count ${category.count}: Asking "${category.label}" to carry the whole sprint in a tote bag.`;
+        return `${category.label} x${category.count}: Asking "${category.label}" to carry the whole sprint in a tote bag.`;
       case "context_dump":
-        return `Count ${category.count}: Releasing a context avalanche and calling it collaboration.`;
+        return `${category.label} x${category.count}: Releasing a context avalanche and calling it collaboration.`;
       case "context_without_question":
-        return `Count ${category.count}: Dropping a full case file with no actual question attached.`;
+        return `${category.label} x${category.count}: Dropping a full case file with no actual question attached.`;
       case "validation_seeking":
-        return `Count ${category.count}: Using the model as a tiny approval desk.`;
+        return `${category.label} x${category.count}: Using the model as a tiny approval desk.`;
       case "decision_outsourcing":
-        return `Count ${category.count}: Handing the steering wheel to autocomplete.`;
+        return `${category.label} x${category.count}: Handing the steering wheel to autocomplete.`;
       case "error_dump_no_context":
-        return `Count ${category.count}: Mailing a stack trace with no return address.`;
+        return `${category.label} x${category.count}: Mailing a stack trace with no return address.`;
       case "prompt_ping_pong":
-        return `Count ${category.count}: Conducting debugging via emotionally loaded Morse code.`;
+        return `${category.label} x${category.count}: Conducting debugging via emotionally loaded Morse code.`;
     }
   });
 
