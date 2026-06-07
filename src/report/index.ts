@@ -1,0 +1,99 @@
+import type { CrimeReport, CrimeSeverity } from "../analyzer";
+
+interface RenderOptions {
+  showSnippets?: boolean;
+}
+
+const COLORS = {
+  reset: "\x1b[0m",
+  bold: "\x1b[1m",
+  dim: "\x1b[2m",
+  red: "\x1b[31m",
+  yellow: "\x1b[33m",
+  green: "\x1b[32m",
+  cyan: "\x1b[36m",
+  magenta: "\x1b[35m",
+  gray: "\x1b[90m"
+};
+
+function color(code: keyof typeof COLORS, value: string): string {
+  if (process.env["NO_COLOR"]) return value;
+  return `${COLORS[code]}${value}${COLORS.reset}`;
+}
+
+export function renderReport(report: CrimeReport, options: RenderOptions = {}): string {
+  const lines: string[] = [];
+  lines.push("");
+  lines.push(`  ${color("bold", color("magenta", "PROMPT CRIMES REPORT"))}`);
+  lines.push(`  ${color("dim", "--------------------")}`);
+  lines.push("");
+  lines.push(`  ${color("dim", "messages scanned")}     ${color("bold", String(report.totals.messages))}`);
+  lines.push(`  ${color("dim", "agents found")}          ${color("bold", String(report.totals.agents))}`);
+  lines.push(`  ${color("dim", "sessions found")}        ${color("bold", String(report.totals.sessions))}`);
+  if (report.totals.dateRange) {
+    lines.push(`  ${color("dim", "date range")}            ${report.totals.dateRange.from} -> ${report.totals.dateRange.to}`);
+  }
+  lines.push(`  ${color("dim", "total charges")}         ${color("bold", String(report.totals.crimes))}`);
+  lines.push("");
+  lines.push(`  ${color("bold", "AI Dependency Index")}  ${indexBar(report.aiDependencyIndex)} ${color("bold", String(report.aiDependencyIndex).padStart(3))}/100`);
+  lines.push(`  ${color("dim", "verdict")}               ${color(verdictColor(report.aiDependencyIndex), report.verdict)}`);
+
+  if (report.categories.length > 0) {
+    lines.push("");
+    lines.push(`  ${color("bold", "top crimes")}`);
+    for (const category of report.categories.slice(0, 8)) {
+      lines.push(
+        `    ${severityBadge(category.severity)} ${category.label.padEnd(28)} ${color("bold", String(category.count).padStart(4))} ${color("dim", `(${category.points} pts)`)}`
+      );
+      if (options.showSnippets) {
+        for (const example of category.examples.filter((item) => item.snippet).slice(0, 2)) {
+          lines.push(`       ${color("gray", example.reason)}: ${example.snippet}`);
+        }
+      }
+    }
+  }
+
+  const agents = Object.entries(report.perAgent).sort(([, a], [, b]) => b.points - a.points);
+  if (agents.length > 0) {
+    lines.push("");
+    lines.push(`  ${color("bold", "by agent")}`);
+    for (const [agent, stats] of agents) {
+      const rate = stats.messages === 0 ? "0.0" : ((stats.crimes / stats.messages) * 100).toFixed(1);
+      lines.push(
+        `    ${color("cyan", agent.padEnd(10))} ${String(stats.crimes).padStart(4)} charges in ${String(stats.messages).padStart(5)} messages ${color("dim", `(${rate}%)`)}`
+      );
+    }
+  }
+
+  lines.push("");
+  lines.push(`  ${color("bold", "charges")}`);
+  for (const charge of report.charges) {
+    lines.push(`    - ${charge}`);
+  }
+
+  lines.push("");
+  if (!options.showSnippets) {
+    lines.push(`  ${color("dim", "snippets hidden by default; rerun with --show-snippets to include sanitized excerpts")}`);
+  }
+
+  return lines.join("\n");
+}
+
+function indexBar(index: number): string {
+  const width = 20;
+  const filled = Math.round((index / 100) * width);
+  const bar = `${"█".repeat(filled)}${"░".repeat(width - filled)}`;
+  return color(verdictColor(index), bar);
+}
+
+function verdictColor(index: number): keyof typeof COLORS {
+  if (index >= 70) return "red";
+  if (index >= 45) return "yellow";
+  return "green";
+}
+
+function severityBadge(severity: CrimeSeverity): string {
+  if (severity === "severe") return color("red", "HIGH");
+  if (severity === "moderate") return color("yellow", "MED ");
+  return color("green", "LOW ");
+}
