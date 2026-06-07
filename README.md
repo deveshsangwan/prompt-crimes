@@ -55,6 +55,7 @@ npm run typecheck
 
 ## Credits
 
-Inspired by DevLove and DevRage. The adapter shape follows DevLove's useful
-local-only chat reader architecture, with a new analyzer and report layer built
-for Prompt Crimes.
+Inspired by [DevLove](https://github.com/SirTenzin/devlove) and
+[DevRage](https://github.com/gricha/devrage). The adapter shape follows
+DevLove's useful local-only chat reader architecture, with a new analyzer and
+report layer built for Prompt Crimes.
