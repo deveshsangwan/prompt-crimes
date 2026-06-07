@@ -1,4 +1,16 @@
 import type { Message } from "../adapters";
+import {
+  CATEGORY_LABELS,
+  CATEGORY_POINTS,
+  CONTEXT_DUMP_PATTERNS,
+  DECISION_OUTSOURCING_PATTERNS,
+  ERROR_DUMP_PATTERNS,
+  PING_PONG_PATTERNS,
+  SNIPPET_SANITIZERS,
+  TEXT_PATTERNS,
+  VAGUE_PROMPT_PATTERNS,
+  VALIDATION_SEEKING_PATTERNS
+} from "./patterns";
 
 export type CrimeCategory =
   | "vague_prompt"
@@ -71,24 +83,6 @@ interface TextStats {
   errorLines: number;
   questionMarks: number;
 }
-
-const CATEGORY_LABELS: Record<CrimeCategory, string> = {
-  vague_prompt: "Vague Prompting",
-  context_dump: "Context Dumping",
-  validation_seeking: "Validation Seeking",
-  decision_outsourcing: "Decision Outsourcing",
-  error_dump_no_context: "Error Dump Without Context",
-  prompt_ping_pong: "Prompt Ping-Pong"
-};
-
-const POINTS: Record<CrimeCategory, number> = {
-  vague_prompt: 7,
-  context_dump: 10,
-  validation_seeking: 8,
-  decision_outsourcing: 11,
-  error_dump_no_context: 12,
-  prompt_ping_pong: 9
-};
 
 export function analyzeMessages(messages: Message[], options: AnalyzeOptions = {}): CrimeReport {
   const evidence: CrimeEvidence[] = [];
@@ -209,7 +203,7 @@ function createEvidence(
   return {
     category,
     severity,
-    points: Math.round(POINTS[category] * multiplier),
+    points: Math.round(CATEGORY_POINTS[category] * multiplier),
     reason,
     ...(includeSnippet ? { snippet: sanitizeSnippet(text) } : {}),
     messageMeta: meta
@@ -227,14 +221,10 @@ function dedupeCategories(evidence: CrimeEvidence[]): CrimeEvidence[] {
 
 function getStats(text: string): TextStats {
   const normalized = normalize(text);
-  const words = normalized.match(/[a-z0-9_'-]+/g) ?? [];
-  const lines = text.split(/\r?\n/);
-  const codeLines = lines.filter((line) =>
-    /^\s*(import |export |const |let |var |function |class |if \(|for \(|while \(|return |def |public |private |<\/?[a-z][^>]*>|[{}`];?$)/i.test(line)
-  ).length;
-  const errorLines = lines.filter((line) =>
-    /(error|exception|traceback|stack trace|^\s*at\s+\S+|^\s*caused by:|failed|enoent|typeerror|referenceerror|syntaxerror)/i.test(line)
-  ).length;
+  const words = normalized.match(TEXT_PATTERNS.word) ?? [];
+  const lines = text.split(TEXT_PATTERNS.lineBreak);
+  const codeLines = lines.filter((line) => TEXT_PATTERNS.codeLine.test(line)).length;
+  const errorLines = lines.filter((line) => TEXT_PATTERNS.errorLine.test(line)).length;
 
   return {
     normalized,
@@ -243,80 +233,62 @@ function getStats(text: string): TextStats {
     lineCount: lines.length,
     codeLines,
     errorLines,
-    questionMarks: (text.match(/\?/g) ?? []).length
+    questionMarks: (text.match(TEXT_PATTERNS.questionMark) ?? []).length
   };
 }
 
 function normalize(text: string): string {
   return text
     .toLowerCase()
-    .replace(/```[\s\S]*?```/g, " codeblock ")
-    .replace(/\s+/g, " ")
+    .replace(TEXT_PATTERNS.codeBlock, " codeblock ")
+    .replace(TEXT_PATTERNS.whitespace, " ")
     .trim();
 }
 
 function isVaguePrompt(stats: TextStats): boolean {
   const text = stats.normalized;
-  if (/^(fix|debug|review|improve|clean up|refactor|optimi[sz]e|explain|thoughts)\s*(this|it)?\??$/.test(text)) {
+  if (VAGUE_PROMPT_PATTERNS.exactAsk.test(text)) {
     return true;
   }
-  if (stats.wordCount <= 7 && /(fix|debug|improve|review|thoughts|help|better|broken)/.test(text)) {
+  if (stats.wordCount <= 7 && VAGUE_PROMPT_PATTERNS.shortAction.test(text)) {
     return true;
   }
-  if (stats.wordCount <= 12 && /(make it better|do your thing|you know what to do|thoughts\??)/.test(text)) {
+  if (stats.wordCount <= 12 && VAGUE_PROMPT_PATTERNS.shortPhrase.test(text)) {
     return true;
   }
   return false;
 }
 
 function isContextDump(stats: TextStats): boolean {
-  const tinyAsk = /(fix|help|thoughts|why|what now|please advise|make sense)\??\s*$/.test(stats.normalized);
+  const tinyAsk = CONTEXT_DUMP_PATTERNS.tinyAsk.test(stats.normalized);
   const heavyPaste = stats.wordCount >= 350 || stats.lineCount >= 35 || stats.codeLines >= 12;
   return heavyPaste && (tinyAsk || stats.codeLines >= 18 || stats.wordCount >= 700);
 }
 
 function isValidationSeeking(text: string): boolean {
-  const hits = [
-    /is this (okay|ok|right|correct|good|fine)/,
-    /am i (right|wrong|crazy|missing something)/,
-    /does this make sense/,
-    /do you agree/,
-    /sanity check/,
-    /validate (this|my thinking|my approach)/,
-    /tell me i'm not/
-  ].filter((pattern) => pattern.test(text)).length;
+  const hits = VALIDATION_SEEKING_PATTERNS.filter((pattern) => pattern.test(text)).length;
   return hits > 0;
 }
 
 function isDecisionOutsourcing(text: string): boolean {
-  return [
-    /you decide/,
-    /pick (the )?(best|one|option|approach)/,
-    /which (one|approach|option|library|framework|model) should i use/,
-    /what should i do/,
-    /make the decision/,
-    /choose for me/,
-    /whatever you think is best/
-  ].some((pattern) => pattern.test(text));
+  return DECISION_OUTSOURCING_PATTERNS.some((pattern) => pattern.test(text));
 }
 
 function isErrorDumpNoContext(stats: TextStats): boolean {
   if (stats.errorLines < 3) return false;
-  const hasContext = /(i ran|command|expected|actual|environment|node|python|version|after|before|when i|steps|repro|trying to)/.test(stats.normalized);
-  const contextWords = stats.words.filter((word) =>
-    ["expected", "actual", "because", "after", "before", "when", "command", "version", "repro"].includes(word)
-  ).length;
+  const hasContext = ERROR_DUMP_PATTERNS.contextClues.test(stats.normalized);
+  const contextWords = stats.words.filter((word) => ERROR_DUMP_PATTERNS.contextWords.has(word)).length;
   return !hasContext && contextWords < 2;
 }
 
 function isPingPongCandidate(text: string): boolean {
   const normalized = normalize(text);
   if (!normalized) return false;
-  if (/^(no|nope|again|still broken|try again|wrong|nah|continue|go on|fix it|not that|doesn't work|didn't work|same error)\.?$/.test(normalized)) {
+  if (PING_PONG_PATTERNS.exact.test(normalized)) {
     return true;
   }
-  const words = normalized.match(/[a-z0-9_'-]+/g) ?? [];
-  return words.length <= 4 && /(again|wrong|broken|continue|nope|nah)/.test(normalized);
+  const words = normalized.match(TEXT_PATTERNS.word) ?? [];
+  return words.length <= 4 && PING_PONG_PATTERNS.keyword.test(normalized);
 }
 
 function summarizeCategories(evidence: CrimeEvidence[]): CategorySummary[] {
@@ -405,12 +377,10 @@ function generateCharges(categories: CategorySummary[], index: number): string[]
 }
 
 function sanitizeSnippet(text: string): string {
-  return text
-    .replace(/```[\s\S]*?```/g, "[code block]")
-    .replace(/(?:[A-Z]:)?[/.~][^\s]+/g, "[path]")
-    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[email]")
-    .replace(/\b(?:sk|pk|ghp|gho|ghu|ghs|xoxb|xoxp)_[A-Za-z0-9_=-]{8,}\b/g, "[secret]")
-    .replace(/\s+/g, " ")
+  return SNIPPET_SANITIZERS.reduce(
+    (value, sanitizer) => value.replace(sanitizer.pattern, sanitizer.replacement),
+    text
+  )
     .trim()
     .slice(0, 160);
 }

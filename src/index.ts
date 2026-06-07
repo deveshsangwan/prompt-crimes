@@ -12,4 +12,16 @@ export type {
   MessageMeta
 } from "./analyzer";
 export { analyzeMessages, analyzeText, getVerdict } from "./analyzer";
+export {
+  CATEGORY_LABELS,
+  CATEGORY_POINTS,
+  CONTEXT_DUMP_PATTERNS,
+  DECISION_OUTSOURCING_PATTERNS,
+  ERROR_DUMP_PATTERNS,
+  PING_PONG_PATTERNS,
+  SNIPPET_SANITIZERS,
+  TEXT_PATTERNS,
+  VAGUE_PROMPT_PATTERNS,
+  VALIDATION_SEEKING_PATTERNS
+} from "./analyzer/patterns";
 export { renderReport } from "./report";
