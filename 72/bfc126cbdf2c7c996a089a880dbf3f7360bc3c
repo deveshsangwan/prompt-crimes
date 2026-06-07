@@ -1,0 +1,14 @@
+src/report/index.ts
+  h_9c147e6399b95b 36-37,97-99
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "72bfc126cbdf2c7c996a089a880dbf3f7360bc3c",
+  "prompts": {},
+  "humans": {
+    "h_9c147e6399b95b": {
+      "author": "deveshsangwan <dev.sangwan2001@gmail.com>"
+    }
+  }
+}
