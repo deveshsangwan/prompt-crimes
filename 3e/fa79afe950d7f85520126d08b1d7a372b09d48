@@ -1,0 +1,26 @@
+.github/workflows/publish.yml
+  s_f917c94de67eb6::t_0391832a3e23d9 1-40
+build.js
+  s_f917c94de67eb6::t_a7d082e3bdda89 15,26
+README.md
+  s_f917c94de67eb6::t_0391832a3e23d9 3,5-8,10,12-14,17,20,23-24,37,40-64,67-68,77-82,86-88,91-92,95-121
+package.json
+  s_f917c94de67eb6::t_0391832a3e23d9 40-47
+  s_f917c94de67eb6::t_a7d082e3bdda89 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "3efa79afe950d7f85520126d08b1d7a372b09d48",
+  "prompts": {},
+  "sessions": {
+    "s_f917c94de67eb6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ea260-25ca-7d50-88e4-48608ff73314",
+        "model": "gpt-5.5"
+      },
+      "human_author": "deveshsangwan <dev.sangwan2001@gmail.com>"
+    }
+  }
+}
