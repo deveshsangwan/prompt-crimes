@@ -1,0 +1,39 @@
+README.md
+  s_69c4294d09469e::t_c84fcbc5a8ec88 62,64
+  s_69c4294d09469e::t_f834a94ff1a7a4 49-50,54,57-61,63,67-69
+src/analyzer/patterns.ts
+  s_69c4294d09469e::t_29dc831a8864fb 91-93
+src/analyzer/index.ts
+  s_69c4294d09469e::t_29dc831a8864fb 29-30,55,94,152,170,340-345,348-349,389,396,409-414,535,537,539,541,543,558-580
+src/report/index.ts
+  s_69c4294d09469e::t_29dc831a8864fb 1,41,48,68,100-105
+  s_69c4294d09469e::t_bdac6b51d4035b 60,65-66,106-140
+test/analyzer.test.mjs
+  s_69c4294d09469e::t_08a1b0c146cbd7 63,71-93
+src/index.ts
+  s_69c4294d09469e::t_29dc831a8864fb 8
+test/report.test.mjs
+  s_69c4294d09469e::t_245cf6c2d839cd 49,52-53,56-61,67-69
+  s_69c4294d09469e::t_08a1b0c146cbd7 13,15,31-48,50-51,54-55,62-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "8621b377b7cebb3c0398a636a19f4132fb830031",
+  "prompts": {},
+  "humans": {
+    "h_9c147e6399b95b": {
+      "author": "deveshsangwan <dev.sangwan2001@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_69c4294d09469e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ea66d-7652-7ba3-bc62-cf8830e68152",
+        "model": "gpt-5.5"
+      },
+      "human_author": "deveshsangwan <dev.sangwan2001@gmail.com>"
+    }
+  }
+}
