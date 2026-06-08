@@ -1,6 +1,11 @@
+import { readFileSync } from "node:fs";
 import { scan } from "./commands/scan";
 
-const VERSION = "0.1.0";
+const packageJson = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf-8")
+) as { version: string };
+
+const VERSION = packageJson.version;
 
 const COMMANDS: Record<string, (args: string[]) => Promise<void>> = {
   scan

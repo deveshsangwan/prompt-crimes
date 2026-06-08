@@ -1,13 +1,23 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const CLI = new URL("../dist/cli.js", import.meta.url).pathname;
+const PACKAGE_JSON = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf-8")
+);
 
 test("prints help", () => {
   const result = spawnSync(process.execPath, [CLI, "--help"], { encoding: "utf-8" });
   assert.equal(result.status, 0);
   assert.match(result.stdout, /prompt-crimes/);
+});
+
+test("prints package version", () => {
+  const result = spawnSync(process.execPath, [CLI, "--version"], { encoding: "utf-8" });
+  assert.equal(result.status, 0);
+  assert.equal(result.stdout.trim(), PACKAGE_JSON.version);
 });
 
 test("rejects invalid date", () => {

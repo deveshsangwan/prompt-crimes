@@ -21,6 +21,7 @@
   "scripts": {
     "build": "node build.js",
     "dev": "node build.js --watch",
+    "prepack": "npm run build",
     "start": "node dist/cli.js",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node --test test/*.test.mjs"
