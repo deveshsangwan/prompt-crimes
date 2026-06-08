@@ -122,8 +122,8 @@ export function analyzeMessages(messages: Message[], options: AnalyzeOptions = {
 
   for (const message of messages) {
     const agent = message.agent ?? "unknown";
-    perAgent[agent] ??= { messages: 0, crimes: 0, points: 0 };
-    perAgent[agent].messages++;
+    const agentSummary = (perAgent[agent] ??= { messages: 0, crimes: 0, points: 0 });
+    agentSummary.messages++;
 
     const textEvidence = analyzeText(message.text, {
       includeSnippets: options.includeSnippets,
@@ -135,14 +135,16 @@ export function analyzeMessages(messages: Message[], options: AnalyzeOptions = {
       const count = (sessionShortPrompts.get(sessionKey) ?? 0) + 1;
       sessionShortPrompts.set(sessionKey, count);
       if (count >= 3 && !textEvidence.some((item) => item.category === "prompt_ping_pong")) {
-        textEvidence.push(createEvidence("prompt_ping_pong", "moderate", message.text, message, options.includeSnippets));
+        textEvidence.push(
+          createEvidence("prompt_ping_pong", "moderate", message.text, messageMeta(message), options.includeSnippets)
+        );
       }
     }
 
     for (const item of textEvidence) {
       evidence.push(item);
-      perAgent[agent].crimes++;
-      perAgent[agent].points += item.points;
+      agentSummary.crimes++;
+      agentSummary.points += item.points;
     }
   }
 
