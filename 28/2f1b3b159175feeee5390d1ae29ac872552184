@@ -1,0 +1,24 @@
+src/analyzer/index.ts
+  s_85309610c6a5ff::t_c85defa18eb7bb 125-126,138-140,146-147
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "282f1b3b159175feeee5390d1ae29ac872552184",
+  "prompts": {},
+  "humans": {
+    "h_a8371b099d509c": {
+      "author": "Devesh Sangwan <deveshsangwan@PAISAMAC156.local>"
+    }
+  },
+  "sessions": {
+    "s_85309610c6a5ff": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "4c32f507-a499-440b-9370-7f5f7eaea99f",
+        "model": "gpt-5.2"
+      },
+      "human_author": "deveshsangwan <dev.sangwan2001@gmail.com>"
+    }
+  }
+}
