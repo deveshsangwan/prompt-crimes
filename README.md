@@ -48,7 +48,7 @@ By default, snippets are hidden so the report is safer to share. Use
   sessions found        33
   total charges         13
 
-  AI Dependency Index  ███░░░░░░░░░░░░░░░░░  17/100
+  Crime Index          ███░░░░░░░░░░░░░░░░░  17/100
   verdict               Independent Operator
 
   top crimes

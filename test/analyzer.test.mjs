@@ -101,17 +101,18 @@ test("scores and verdicts are normalized", () => {
   ]);
 
   assert.equal(report.totals.messages, 5);
-  assert.ok(report.aiDependencyIndex >= 0);
-  assert.ok(report.aiDependencyIndex <= 100);
-  assert.equal(typeof getVerdict(report.aiDependencyIndex), "string");
+  assert.ok(report.crimeIndex >= 0);
+  assert.ok(report.crimeIndex <= 100);
+  assert.equal(typeof getVerdict(report.crimeIndex), "string");
   assert.ok(report.categories.some((category) => category.category === "decision_outsourcing"));
   assert.ok(report.categories.some((category) => category.category === "prompt_ping_pong"));
-  assert.equal(report.aiDependencyBreakdown.rates.decisionRate, 1 / 5);
-  assert.equal(report.aiDependencyBreakdown.rates.pingPongRate, 3 / 5);
-  assert.ok(report.aiDependencyBreakdown.scores.decision > 0);
+  assert.equal(report.crimeIndexBreakdown.rates.crimeRate, report.totals.crimes / report.totals.messages);
+  assert.equal(report.crimeIndexBreakdown.rates.pointsPerMessage, report.totals.points / report.totals.messages);
+  assert.ok(report.crimeIndexBreakdown.scores.frequency > 0);
+  assert.ok(report.crimeIndexBreakdown.scores.severity > 0);
 });
 
-test("healthy usage signals reduce the dependency index", () => {
+test("healthy usage signals reduce the crime index", () => {
   const thinMessages = [
     { text: "Which one should I use?", agent: "codex", session: "a" },
     ...Array.from({ length: 9 }, () => ({
@@ -132,8 +133,36 @@ test("healthy usage signals reduce the dependency index", () => {
   const thinReport = analyzeMessages(thinMessages);
   const healthyReport = analyzeMessages(healthyMessages);
 
-  assert.ok(healthyReport.aiDependencyIndex < thinReport.aiDependencyIndex);
-  assert.ok(healthyReport.aiDependencyBreakdown.healthyDiscount > 0);
+  assert.ok(healthyReport.crimeIndex < thinReport.crimeIndex);
+  assert.ok(healthyReport.crimeIndexBreakdown.healthyDiscount > 0);
   assert.equal(healthyReport.healthySignals.shows_attempt, 9);
   assert.ok(detectHealthySignals("Explain how does this cache work? I tried the docs first.").includes("learning"));
+});
+
+test("higher crime rate and point density produce a higher crime index", () => {
+  const neutral = { text: "The feature branch includes a login form and a redirect handler.", agent: "codex", session: "a" };
+  const lowCrimeReport = analyzeMessages([
+    ...Array.from({ length: 10 }, () => ({ text: "fix this", agent: "codex", session: "a" })),
+    ...Array.from({ length: 90 }, () => neutral)
+  ]);
+  const highCrimeReport = analyzeMessages([
+    ...Array.from({ length: 20 }, () => ({ text: "TypeError: Cannot read properties of undefined", agent: "codex", session: "a" })),
+    ...Array.from({ length: 80 }, () => neutral)
+  ]);
+
+  assert.ok(highCrimeReport.totals.crimes > lowCrimeReport.totals.crimes);
+  assert.ok(highCrimeReport.crimeIndex > lowCrimeReport.crimeIndex);
+});
+
+test("context without question contributes to the crime index", () => {
+  const neutral = { text: "The feature branch includes a login form and a redirect handler.", agent: "codex", session: "a" };
+  const contextWithoutQuestion = Array.from(
+    { length: 26 },
+    (_, index) => `Service ${index} emits an event into the queue and the worker stores the result.`
+  ).join("\n");
+  const cleanReport = analyzeMessages([neutral]);
+  const contextReport = analyzeMessages([{ text: contextWithoutQuestion, agent: "codex", session: "a" }]);
+
+  assert.ok(contextReport.categories.some((category) => category.category === "context_without_question"));
+  assert.ok(contextReport.crimeIndex > cleanReport.crimeIndex);
 });

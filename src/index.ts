@@ -7,6 +7,7 @@ export { opencodeAdapter } from "./adapters/opencode";
 export type {
   CrimeCategory,
   CrimeEvidence,
+  CrimeIndexBreakdown,
   CrimeReport,
   CrimeSeverity,
   HealthySignal,

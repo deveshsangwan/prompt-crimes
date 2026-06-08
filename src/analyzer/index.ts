@@ -59,24 +59,16 @@ export interface AgentSummary {
   points: number;
 }
 
-export interface AiDependencyBreakdown {
+export interface CrimeIndexBreakdown {
   rates: {
-    validationRate: number;
-    decisionRate: number;
-    pingPongRate: number;
-    vagueRate: number;
-    errorNoContextRate: number;
-    contextDumpRate: number;
+    crimeRate: number;
+    pointsPerMessage: number;
+    healthyRatio: number;
   };
   scores: {
-    validation: number;
-    decision: number;
-    pingPong: number;
-    vague: number;
-    errorNoContext: number;
-    contextDump: number;
+    frequency: number;
+    severity: number;
   };
-  volumeBoost: number;
   healthyDiscount: number;
 }
 
@@ -93,8 +85,8 @@ export interface CrimeReport {
   categories: CategorySummary[];
   evidence: CrimeEvidence[];
   healthySignals: Record<HealthySignal, number>;
-  aiDependencyIndex: number;
-  aiDependencyBreakdown: AiDependencyBreakdown;
+  crimeIndex: number;
+  crimeIndexBreakdown: CrimeIndexBreakdown;
   verdict: string;
   charges: string[];
 }
@@ -151,8 +143,8 @@ export function analyzeMessages(messages: Message[], options: AnalyzeOptions = {
   const categories = summarizeCategories(evidence);
   const dateRange = buildDateRange(messages);
   const healthySignals = summarizeHealthySignals(messages);
-  const { index: aiDependencyIndex, breakdown: aiDependencyBreakdown } = computeAiDependencyIndex(messages, evidence);
-  const verdict = getVerdict(aiDependencyIndex);
+  const { index: crimeIndex, breakdown: crimeIndexBreakdown } = computeCrimeIndex(messages, evidence);
+  const verdict = getVerdict(crimeIndex);
 
   return {
     totals: {
@@ -167,10 +159,10 @@ export function analyzeMessages(messages: Message[], options: AnalyzeOptions = {
     categories,
     evidence: evidence.sort((a, b) => b.points - a.points),
     healthySignals,
-    aiDependencyIndex,
-    aiDependencyBreakdown,
+    crimeIndex,
+    crimeIndexBreakdown,
     verdict,
-    charges: generateCharges(categories, aiDependencyIndex)
+    charges: generateCharges(categories, crimeIndex)
   };
 }
 
@@ -411,83 +403,53 @@ function buildDateRange(messages: Message[]): { from: string; to: string } | und
   return { from: first.toISOString().slice(0, 10), to: last.toISOString().slice(0, 10) };
 }
 
-function computeAiDependencyIndex(
+function computeCrimeIndex(
   messages: Message[],
   evidence: CrimeEvidence[]
-): { index: number; breakdown: AiDependencyBreakdown } {
+): { index: number; breakdown: CrimeIndexBreakdown } {
   if (messages.length === 0) {
     return {
       index: 0,
       breakdown: {
         rates: {
-          validationRate: 0,
-          decisionRate: 0,
-          pingPongRate: 0,
-          vagueRate: 0,
-          errorNoContextRate: 0,
-          contextDumpRate: 0
+          crimeRate: 0,
+          pointsPerMessage: 0,
+          healthyRatio: 0
         },
         scores: {
-          validation: 0,
-          decision: 0,
-          pingPong: 0,
-          vague: 0,
-          errorNoContext: 0,
-          contextDump: 0
+          frequency: 0,
+          severity: 0
         },
-        volumeBoost: 0,
         healthyDiscount: 0
       }
     };
   }
 
-  const countByCategory = evidence.reduce(
-    (counts, item) => {
-      counts[item.category] = (counts[item.category] ?? 0) + 1;
-      return counts;
-    },
-    {} as Partial<Record<CrimeCategory, number>>
-  );
-  const rate = (category: CrimeCategory) => (countByCategory[category] ?? 0) / messages.length;
-  const rates = {
-    validationRate: rate("validation_seeking"),
-    decisionRate: rate("decision_outsourcing"),
-    pingPongRate: rate("prompt_ping_pong"),
-    vagueRate: rate("vague_prompt"),
-    errorNoContextRate: rate("error_dump_no_context"),
-    contextDumpRate: rate("context_dump")
-  };
-  const scores = {
-    validation: rates.validationRate * 22,
-    decision: rates.decisionRate * 24,
-    pingPong: rates.pingPongRate * 18,
-    vague: rates.vagueRate * 14,
-    errorNoContext: rates.errorNoContextRate * 14,
-    contextDump: rates.contextDumpRate * 8
-  };
-  const volumeBoost = Math.min(18, Math.log10(messages.length + 1) * 8);
+  const totalPoints = evidence.reduce((sum, item) => sum + item.points, 0);
   const healthyCount = messages.filter((message) => {
     const signals = detectHealthySignals(message.text);
     return signals.includes("shows_attempt") || signals.includes("learning");
   }).length;
+  const crimeRate = evidence.length / messages.length;
+  const pointsPerMessage = totalPoints / messages.length;
   const healthyRatio = healthyCount / messages.length;
+  const rates = {
+    crimeRate,
+    pointsPerMessage,
+    healthyRatio
+  };
+  const scores = {
+    frequency: 100 * (1 - Math.exp(-crimeRate / 0.22)),
+    severity: 100 * (1 - Math.exp(-pointsPerMessage / 2.8))
+  };
   const healthyDiscount = healthyRatio * 12;
-  const rawIndex =
-    scores.validation +
-    scores.decision +
-    scores.pingPong +
-    scores.vague +
-    scores.errorNoContext +
-    scores.contextDump +
-    volumeBoost -
-    healthyDiscount;
+  const rawIndex = scores.frequency * 0.45 + scores.severity * 0.55 - healthyDiscount;
 
   return {
     index: clamp(Math.round(rawIndex), 0, 100),
     breakdown: {
       rates,
       scores,
-      volumeBoost,
       healthyDiscount
     }
   };

@@ -36,8 +36,8 @@ export function renderReport(report: CrimeReport, options: RenderOptions = {}): 
   lines.push(`  ${color("dim", "charges filed")}         ${color("bold", String(report.totals.crimes))}`);
   lines.push(`  ${color("dim", "crime rate")}            ${color("bold", String(((report.totals.crimes / report.totals.messages) * 100).toFixed(1)).padStart(3))}%`);
   lines.push("");
-  lines.push(`  ${color("bold", "AI Dependency Index")}  ${indexBar(report.aiDependencyIndex)} ${color("bold", String(report.aiDependencyIndex).padStart(3))}/100`);
-  lines.push(`  ${color("dim", "verdict")}               ${color(verdictColor(report.aiDependencyIndex), report.verdict)}`);
+  lines.push(`  ${color("bold", "Crime Index")}          ${indexBar(report.crimeIndex)} ${color("bold", String(report.crimeIndex).padStart(3))}/100`);
+  lines.push(`  ${color("dim", "verdict")}               ${color(verdictColor(report.crimeIndex), report.verdict)}`);
 
   if (report.categories.length > 0) {
     lines.push("");
