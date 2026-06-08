@@ -43,30 +43,35 @@ By default, snippets are hidden so the report is safer to share. Use
   PROMPT CRIMES REPORT
   --------------------
 
-  messages scanned     224
+  messages scanned     489
   agents found          3
-  sessions found        33
-  charges filed         13
-  crime rate            5.8%
+  sessions found        134
+  date range            2025-10-12 -> 2026-06-08
+  charges filed         23
+  crime rate            4.7%
 
-  Crime Index          ███░░░░░░░░░░░░░░░░░  17/100
-  verdict               Independent Operator
-  case summary          Mostly clean record, but the evidence locker still has a few sticky notes.
+  Crime Index          ████░░░░░░░░░░░░░░░░  18/100
+  verdict               Mostly Harmless Prompt Tourist
+  case summary          Context Dumping made a cameo, then politely returned to misdemeanor court.
 
   top crimes
-    MAJOR   Context Dumping              6 (93 pts)
-    MINOR   Validation Seeking           2 (20 pts)
-    MINOR   Decision Outsourcing         1 (14 pts)
+    MAJOR   Context Dumping                 9 (144 pts)
+    NOTABLE Context Without Question        8 (88 pts)
+    MINOR   Vague Prompting                 3 (23 pts)
+    MINOR   Validation Seeking              2 (20 pts)
+    MINOR   Error Dump Without Context      1 (15 pts)
 
   by agent
-    codex          7 charges in    92 messages (7.6%) most charges
-    cursor         4 charges in    81 messages (4.9%)
-    claude         2 charges in    12 messages (16.7%) highest rate
+    cursor       13 charges in   352 messages (3.7%) most charges
+    codex         5 charges in    93 messages (5.4%)
+    opencode      5 charges in    44 messages (11.4%) highest rate
 
   charges
-    - Context Dumping x6: Releasing a context avalanche and asking for a snow cone.
+    - Context Dumping x9: Releasing a context avalanche and asking for a snow cone.
+    - Context Without Question x8: Dropping a full case file with the final page missing.
+    - Vague Prompting x3: Filing tickets with the acceptance criteria of a shrug.
     - Validation Seeking x2: Asking the model to stamp APPROVED on vibes.
-    - Decision Outsourcing x1: Handing the steering wheel to autocomplete and checking the seatbelt later.
+    - Error Dump Without Context x1: Mailing a stack trace with no return address.
 ```
 
 ## Supported Agents
@@ -86,46 +91,6 @@ Reads local session storage for:
 `prompt-crimes` is local-only. It reads chat history from local app storage,
 analyzes it with deterministic heuristics, and prints a terminal report. It
 does not call an LLM or send chat content to a server.
-
-## Development
-
-```bash
-git clone https://github.com/deveshsangwan/prompt-crimes.git
-cd prompt-crimes
-npm install
-npm test
-npm run typecheck
-npm run build
-node dist/cli.js
-```
-
-To inspect publish contents:
-
-```bash
-npm pack --dry-run
-```
-
-## Publishing
-
-This repo includes a GitHub Actions workflow at
-`.github/workflows/publish.yml`.
-
-The workflow publishes to npm when a version tag is pushed:
-
-```bash
-npm version patch
-git push origin main --tags
-```
-
-Before using the workflow, configure npm Trusted Publishing for this package:
-
-- Package: `prompt-crimes`
-- Provider: GitHub Actions
-- Repository: `deveshsangwan/prompt-crimes`
-- Workflow file: `publish.yml`
-
-The workflow uses `npm publish --provenance`, so npm can attach provenance to
-the published package.
 
 ## Credits
 
