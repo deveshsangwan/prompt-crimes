@@ -1,0 +1,30 @@
+src/report/index.ts
+  s_6969ff813bb1c1::t_32ab77b600a00b 39-40
+src/index.ts
+  s_6969ff813bb1c1::t_3aa5f2d07f9c36 10
+test/report.test.mjs
+  s_6969ff813bb1c1::t_7532cc8f228e64 11-12
+src/analyzer/index.ts
+  s_6969ff813bb1c1::t_d122d40e56a21a 62,64-66,69-70,88-89,146-147,162-163,165,406,409,415-417,420-421,428,433-434,436-444,446
+README.md
+  s_6969ff813bb1c1::t_567c8272fd489b 51
+test/analyzer.test.mjs
+  s_6969ff813bb1c1::t_c78dcf72c652ff 115
+  s_6969ff813bb1c1::t_8ac0f3c730f479 104-106,109-112,136-137,141-167
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "a2bbadceee3c6b4af7c4499c8099f0261413ad1f",
+  "prompts": {},
+  "sessions": {
+    "s_6969ff813bb1c1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ea662-b092-77b1-9bb3-01a9752c5f32",
+        "model": "gpt-5.5"
+      },
+      "human_author": "deveshsangwan <dev.sangwan2001@gmail.com>"
+    }
+  }
+}
