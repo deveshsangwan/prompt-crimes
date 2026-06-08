@@ -1,0 +1,24 @@
+README.md
+  s_5d235be84c9f93::t_22ce1cac550d3b 46,48-51,53-55,58-62,65-67,70-72,74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "be20b8fa4510a6bbf19d76d02668cbcfe65013e0",
+  "prompts": {},
+  "humans": {
+    "h_9c147e6399b95b": {
+      "author": "deveshsangwan <dev.sangwan2001@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_5d235be84c9f93": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ea755-29eb-71b1-94fd-01129efd8086",
+        "model": "gpt-5.5"
+      },
+      "human_author": "deveshsangwan <dev.sangwan2001@gmail.com>"
+    }
+  }
+}
