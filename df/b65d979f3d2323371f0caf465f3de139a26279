@@ -1,0 +1,23 @@
+src/cli.ts
+  s_68741fc0179961::t_ca969697959b6c 1,4-8
+test/cli.test.mjs
+  s_68741fc0179961::t_ca969697959b6c 3,7-9,17-20
+package.json
+  s_68741fc0179961::t_87ddf2a87f69f9 24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "dfb65d979f3d2323371f0caf465f3de139a26279",
+  "prompts": {},
+  "sessions": {
+    "s_68741fc0179961": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ea859-fd9f-73d2-a9c1-000a93904332",
+        "model": "gpt-5.5"
+      },
+      "human_author": "deveshsangwan <dev.sangwan2001@gmail.com>"
+    }
+  }
+}
