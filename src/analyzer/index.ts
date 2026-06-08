@@ -26,6 +26,8 @@ export type CrimeCategory =
 
 export type CrimeSeverity = "minor" | "moderate" | "severe";
 
+export type CategoryImpact = "minor" | "notable" | "major";
+
 export type HealthySignal = "learning" | "clear_context" | "specific_question" | "shows_attempt";
 
 export interface MessageMeta {
@@ -50,6 +52,7 @@ export interface CategorySummary {
   count: number;
   points: number;
   severity: CrimeSeverity;
+  impact: CategoryImpact;
   examples: CrimeEvidence[];
 }
 
@@ -88,6 +91,7 @@ export interface CrimeReport {
   crimeIndex: number;
   crimeIndexBreakdown: CrimeIndexBreakdown;
   verdict: string;
+  caseSummary: string;
   charges: string[];
 }
 
@@ -145,6 +149,7 @@ export function analyzeMessages(messages: Message[], options: AnalyzeOptions = {
   const healthySignals = summarizeHealthySignals(messages);
   const { index: crimeIndex, breakdown: crimeIndexBreakdown } = computeCrimeIndex(messages, evidence);
   const verdict = getVerdict(crimeIndex);
+  const caseSummary = generateCaseSummary(categories, crimeIndex, evidence.length);
 
   return {
     totals: {
@@ -162,6 +167,7 @@ export function analyzeMessages(messages: Message[], options: AnalyzeOptions = {
     crimeIndex,
     crimeIndexBreakdown,
     verdict,
+    caseSummary,
     charges: generateCharges(categories, crimeIndex)
   };
 }
@@ -331,10 +337,16 @@ function isContextDump(stats: TextStats): boolean {
 }
 
 function isContextWithoutQuestion(stats: TextStats): boolean {
-  const hasBigContext = stats.wordCount >= 180 || stats.lineCount >= 25 || stats.codeLines >= 8;
+  const hasBigContext =
+    stats.wordCount >= 260 ||
+    stats.lineCount >= 35 ||
+    stats.codeLines >= 12 ||
+    stats.jsonLikeLines >= 20 ||
+    stats.logLikeLines >= 15;
   const hasQuestion = stats.questionMarks > 0;
   const hasAskVerb = CONTEXT_WITHOUT_QUESTION_PATTERNS.askVerb.test(stats.normalized);
-  return hasBigContext && !hasQuestion && !hasAskVerb;
+  const hasInstruction = CONTEXT_WITHOUT_QUESTION_PATTERNS.instruction.test(stats.normalized);
+  return hasBigContext && !hasQuestion && !hasAskVerb && !hasInstruction;
 }
 
 function isValidationSeeking(text: string): boolean {
@@ -374,12 +386,14 @@ function summarizeCategories(evidence: CrimeEvidence[]): CategorySummary[] {
       count: 0,
       points: 0,
       severity: "minor" as CrimeSeverity,
+      impact: "minor" as CategoryImpact,
       examples: []
     };
 
     summary.count++;
     summary.points += item.points;
     summary.severity = maxSeverity(summary.severity, item.severity);
+    summary.impact = getCategoryImpact(summary);
     if (summary.examples.length < 3) summary.examples.push(item);
     summaries.set(item.category, summary);
   }
@@ -390,6 +404,12 @@ function summarizeCategories(evidence: CrimeEvidence[]): CategorySummary[] {
 function maxSeverity(a: CrimeSeverity, b: CrimeSeverity): CrimeSeverity {
   const rank: Record<CrimeSeverity, number> = { minor: 1, moderate: 2, severe: 3 };
   return rank[b] > rank[a] ? b : a;
+}
+
+function getCategoryImpact(category: Pick<CategorySummary, "count" | "points">): CategoryImpact {
+  if (category.points >= 90 || category.count >= 10) return "major";
+  if (category.points >= 30 || category.count >= 4) return "notable";
+  return "minor";
 }
 
 function buildDateRange(messages: Message[]): { from: string; to: string } | undefined {
@@ -512,15 +532,15 @@ function generateCharges(categories: CategorySummary[], index: number): string[]
   const charges = categories.slice(0, 5).map((category) => {
     switch (category.category) {
       case "vague_prompt":
-        return `${category.label} x${category.count}: Asking "${category.label}" to carry the whole sprint in a tote bag.`;
+        return `${category.label} x${category.count}: Filing tickets with the acceptance criteria of a shrug.`;
       case "context_dump":
-        return `${category.label} x${category.count}: Releasing a context avalanche and calling it collaboration.`;
+        return `${category.label} x${category.count}: Releasing a context avalanche and asking for a snow cone.`;
       case "context_without_question":
-        return `${category.label} x${category.count}: Dropping a full case file with no actual question attached.`;
+        return `${category.label} x${category.count}: Dropping a full case file with the final page missing.`;
       case "validation_seeking":
-        return `${category.label} x${category.count}: Using the model as a tiny approval desk.`;
+        return `${category.label} x${category.count}: Asking the model to stamp APPROVED on vibes.`;
       case "decision_outsourcing":
-        return `${category.label} x${category.count}: Handing the steering wheel to autocomplete.`;
+        return `${category.label} x${category.count}: Handing the steering wheel to autocomplete and checking the seatbelt later.`;
       case "error_dump_no_context":
         return `${category.label} x${category.count}: Mailing a stack trace with no return address.`;
       case "prompt_ping_pong":
@@ -533,6 +553,31 @@ function generateCharges(categories: CategorySummary[], index: number): string[]
   }
 
   return charges.slice(0, 5);
+}
+
+function generateCaseSummary(categories: CategorySummary[], index: number, crimeCount: number): string {
+  if (crimeCount === 0) {
+    return "Case dismissed. The prompts showed up with ID, a plan, and matching socks.";
+  }
+
+  const topCategory = categories[0];
+  if (index < 18) {
+    return "Mostly clean record, but the evidence locker still has a few sticky notes.";
+  }
+
+  if (!topCategory) {
+    return "The docket is oddly quiet, which is either discipline or excellent shredding.";
+  }
+
+  if (index >= 70) {
+    return `${topCategory.label} is running the precinct, and everyone else is just filling out forms.`;
+  }
+
+  if (index >= 35) {
+    return `${topCategory.label} led the chase, but the getaway vehicle was mostly documentation.`;
+  }
+
+  return `${topCategory.label} made a cameo, then politely returned to misdemeanor court.`;
 }
 
 function sanitizeSnippet(text: string): string {

@@ -5,6 +5,7 @@ export { parseCodexJsonl } from "./adapters/codex";
 export { parseCursorJsonl } from "./adapters/cursor";
 export { opencodeAdapter } from "./adapters/opencode";
 export type {
+  CategoryImpact,
   CrimeCategory,
   CrimeEvidence,
   CrimeIndexBreakdown,

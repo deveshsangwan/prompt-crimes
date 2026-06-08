@@ -88,7 +88,9 @@ export const CONTEXT_DUMP_PATTERNS = {
 } as const;
 
 export const CONTEXT_WITHOUT_QUESTION_PATTERNS = {
-  askVerb: /(can you|please|help|explain|fix|review|suggest|tell me|what should|how should|why)/
+  askVerb: /(can you|please|help|explain|fix|review|suggest|tell me|what should|how should|why)/,
+  instruction:
+    /(^|[.!?]\s+)(please\s+)?(explore|focus on|add|update|implement|inspect|compare|test|debug|summari[sz]e|migrate|remove|verify|run|use|create|write|change|check|find|investigate|analy[sz]e|refactor)\b|\b(i want to|i need to|we need to|need to|trying to)\b/
 } as const;
 
 export const HEALTHY_SIGNAL_PATTERNS = {

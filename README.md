@@ -46,20 +46,27 @@ By default, snippets are hidden so the report is safer to share. Use
   messages scanned     224
   agents found          3
   sessions found        33
-  total charges         13
+  charges filed         13
+  crime rate            5.8%
 
   Crime Index          ███░░░░░░░░░░░░░░░░░  17/100
   verdict               Independent Operator
+  case summary          Mostly clean record, but the evidence locker still has a few sticky notes.
 
   top crimes
-    HIGH Context Dumping                 6 (93 pts)
-    MED  Validation Seeking              2 (20 pts)
-    MED  Decision Outsourcing            1 (14 pts)
+    MAJOR   Context Dumping              6 (93 pts)
+    MINOR   Validation Seeking           2 (20 pts)
+    MINOR   Decision Outsourcing         1 (14 pts)
+
+  by agent
+    codex          7 charges in    92 messages (7.6%) most charges
+    cursor         4 charges in    81 messages (4.9%)
+    claude         2 charges in    12 messages (16.7%) highest rate
 
   charges
-    - Context Dumping x6: Releasing a context avalanche and calling it collaboration.
-    - Validation Seeking x2: Using the model as a tiny approval desk.
-    - Decision Outsourcing x1: Handing the steering wheel to autocomplete.
+    - Context Dumping x6: Releasing a context avalanche and asking for a snow cone.
+    - Validation Seeking x2: Asking the model to stamp APPROVED on vibes.
+    - Decision Outsourcing x1: Handing the steering wheel to autocomplete and checking the seatbelt later.
 ```
 
 ## Supported Agents

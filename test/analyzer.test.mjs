@@ -60,12 +60,37 @@ test("detects context without a clear question", () => {
     { length: 26 },
     (_, index) => `Service ${index} emits an event into the queue and the worker stores the result.`
   ).join("\n");
-  const codeContext = Array.from({ length: 8 }, (_, index) => `const service${index} = createService();`).join("\n");
+  const codeContext = Array.from({ length: 12 }, (_, index) => `const service${index} = createService();`).join("\n");
 
   assert.ok(categories(`Here is my architecture.\n${architectureNotes}`).includes("context_without_question"));
   assert.ok(categories(`Here is the relevant setup.\n${codeContext}`).includes("context_without_question"));
   assert.equal(categories(`Here is my architecture.\n${architectureNotes}\n\nWhat should I change?`).includes("context_without_question"), false);
   assert.equal(categories(`Here is my architecture.\n${architectureNotes}\n\nPlease review it.`).includes("context_without_question"), false);
+});
+
+test("does not flag large coding-agent instructions as context without question", () => {
+  const notes = Array.from(
+    { length: 30 },
+    (_, index) => `Migration note ${index} maps the old offer field into the new offer response model.`
+  ).join("\n");
+  const setup = Array.from({ length: 14 }, (_, index) => `const offer${index} = createOfferFixture();`).join("\n");
+
+  assert.equal(
+    categories(`Explore how Hero migrated from the old offer screen. Focus on these files.\n${notes}`).includes(
+      "context_without_question"
+    ),
+    false
+  );
+  assert.equal(
+    categories(`Add the partner-specific EMI logic and update the tests.\n${setup}`).includes("context_without_question"),
+    false
+  );
+  assert.equal(
+    categories(`For testing this I want to mock the integration response.\n${notes}`).includes(
+      "context_without_question"
+    ),
+    false
+  );
 });
 
 test("detects validation seeking", () => {

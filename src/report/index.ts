@@ -1,4 +1,4 @@
-import type { CrimeReport, CrimeSeverity } from "../analyzer";
+import type { CategoryImpact, CrimeReport } from "../analyzer";
 
 interface RenderOptions {
   showSnippets?: boolean;
@@ -38,13 +38,14 @@ export function renderReport(report: CrimeReport, options: RenderOptions = {}): 
   lines.push("");
   lines.push(`  ${color("bold", "Crime Index")}          ${indexBar(report.crimeIndex)} ${color("bold", String(report.crimeIndex).padStart(3))}/100`);
   lines.push(`  ${color("dim", "verdict")}               ${color(verdictColor(report.crimeIndex), report.verdict)}`);
+  lines.push(`  ${color("dim", "case summary")}          ${report.caseSummary}`);
 
   if (report.categories.length > 0) {
     lines.push("");
     lines.push(`  ${color("bold", "top crimes")}`);
     for (const category of report.categories.slice(0, 8)) {
       lines.push(
-        `    ${severityBadge(category.severity)} ${category.label.padEnd(28)} ${color("bold", String(category.count).padStart(4))} ${color("dim", `(${category.points} pts)`)}`
+        `    ${impactBadge(category.impact)} ${category.label.padEnd(28)} ${color("bold", String(category.count).padStart(4))} ${color("dim", `(${category.points} pts)`)}`
       );
       if (options.showSnippets) {
         for (const example of category.examples.filter((item) => item.snippet).slice(0, 2)) {
@@ -56,12 +57,15 @@ export function renderReport(report: CrimeReport, options: RenderOptions = {}): 
 
   const agents = Object.entries(report.perAgent).sort(([, a], [, b]) => b.points - a.points);
   if (agents.length > 0) {
+    const agentMarkers = getAgentMarkers(agents);
     lines.push("");
     lines.push(`  ${color("bold", "by agent")}`);
     for (const [agent, stats] of agents) {
       const rate = stats.messages === 0 ? "0.0" : ((stats.crimes / stats.messages) * 100).toFixed(1);
+      const markers = agentMarkers.get(agent);
+      const marker = markers && markers.length > 0 ? color("yellow", ` ${markers.join(", ")}`) : "";
       lines.push(
-        `    ${color("cyan", agent.padEnd(10))} ${String(stats.crimes).padStart(4)} charges in ${String(stats.messages).padStart(5)} messages ${color("dim", `(${rate}%)`)}`
+        `    ${color("cyan", agent.padEnd(10))} ${String(stats.crimes).padStart(4)} charges in ${String(stats.messages).padStart(5)} messages ${color("dim", `(${rate}%)`)}${marker}`
       );
     }
   }
@@ -93,8 +97,45 @@ function verdictColor(index: number): keyof typeof COLORS {
   return "green";
 }
 
-function severityBadge(severity: CrimeSeverity): string {
-  if (severity === "severe") return color("red", "MAJOR ");
-  if (severity === "moderate") return color("yellow", "MINOR ");
-  return color("green", "PETTY ");
+function impactBadge(impact: CategoryImpact): string {
+  if (impact === "major") return color("red", "MAJOR  ");
+  if (impact === "notable") return color("yellow", "NOTABLE");
+  return color("green", "MINOR  ");
+}
+
+function getAgentMarkers(agents: Array<[string, CrimeReport["perAgent"][string]]>): Map<string, string[]> {
+  const markers = new Map<string, string[]>();
+  const activeAgents = agents.filter(([, stats]) => stats.crimes > 0 && stats.messages > 0);
+  if (activeAgents.length < 2) return markers;
+
+  const mostCharges = uniqueMax(activeAgents, ([, stats]) => stats.crimes);
+  const highestRate = uniqueMax(activeAgents, ([, stats]) => stats.crimes / stats.messages);
+
+  if (mostCharges) markers.set(mostCharges[0], ["most charges"]);
+  if (highestRate) {
+    const existing = markers.get(highestRate[0]) ?? [];
+    existing.push("highest rate");
+    markers.set(highestRate[0], existing);
+  }
+
+  return markers;
+}
+
+function uniqueMax<T>(items: T[], score: (item: T) => number): T | undefined {
+  let best: T | undefined;
+  let bestScore = -Infinity;
+  let tied = false;
+
+  for (const item of items) {
+    const itemScore = score(item);
+    if (itemScore > bestScore) {
+      best = item;
+      bestScore = itemScore;
+      tied = false;
+    } else if (itemScore === bestScore) {
+      tied = true;
+    }
+  }
+
+  return tied ? undefined : best;
 }
