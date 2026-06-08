@@ -1,6 +1,6 @@
 {
   "name": "prompt-crimes",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Generate a funny local Prompt Crimes report from AI chat histories",
   "type": "module",
   "bin": {
